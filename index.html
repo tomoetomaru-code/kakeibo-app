@@ -139,6 +139,7 @@
   
   let currentType = "出金";
   let isAuthReady = false;
+  let currentProfile = null;
   let imageBlobs = [];
   let allData = [];
   let myChart = null;
@@ -154,10 +155,20 @@
    */
   window.onload = function() {
     liff.init({ liffId: LIFF_ID }).then(() => {
-      if (!liff.isLoggedIn()) { liff.login(); return; }
+      if (!liff.isLoggedIn()) {
+        // LINEアプリ内では通常どおりログインへ誘導
+        if (liff.isInClient()) {
+          liff.login();
+          return null;
+        }
+        // 外部ブラウザではフォールバックユーザーで継続
+        currentProfile = { userId: "web-preview-user", displayName: "ブラウザ利用者" };
+        return currentProfile;
+      }
       return liff.getProfile();
     }).then(async (p) => {
       if (!p) return;
+      currentProfile = p;
       
       // 自動ユーザー登録を実行
       await callGas("register", { userId: p.userId, displayName: p.displayName });
@@ -169,6 +180,10 @@
       initFilters();
     }).catch(err => {
       console.error("LIFF初期化エラー:", err);
+      // LIFFが使えない環境でも入力送信できるようにする
+      currentProfile = { userId: "web-preview-user", displayName: "ブラウザ利用者" };
+      isAuthReady = true;
+      updateSubmitButtonState();
     });
     document.getElementById('date').value = new Date().toISOString().split('T')[0];
     bindInputListeners();
@@ -443,7 +458,14 @@
     btn.disabled = true; btn.innerText = "送信中...";
     
     try {
-      const p = await liff.getProfile();
+      let p = currentProfile;
+      if (!p && liff && liff.isLoggedIn && liff.isLoggedIn()) {
+        p = await liff.getProfile();
+      }
+      if (!p) {
+        p = { userId: "web-preview-user", displayName: "ブラウザ利用者" };
+      }
+
       const res = await callGas("upload", {
         lineId: p.userId, userName: p.displayName, type: currentType, amount: Number(amt),
         category: document.getElementById('category').value, shop: document.getElementById('shop').value || "未設定",
