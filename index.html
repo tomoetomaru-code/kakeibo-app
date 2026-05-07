@@ -183,6 +183,8 @@
       // LIFFが使えない環境でも入力送信できるようにする
       currentProfile = { userId: "web-preview-user", displayName: "ブラウザ利用者" };
       isAuthReady = true;
+      updateCategoryOptions();
+      initFilters().catch(filterErr => console.error("フィルタ初期化エラー:", filterErr));
       updateSubmitButtonState();
     });
     document.getElementById('date').value = new Date().toISOString().split('T')[0];
