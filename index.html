@@ -95,7 +95,7 @@
     <input type="file" id="camera" accept="image/*" capture="environment" style="display:none" onchange="handleFiles(this)">
     <input type="file" id="gallery" accept="image/*" multiple style="display:none" onchange="handleFiles(this)">
     <div id="previewContainer" class="preview-container"></div>
-    <button id="submitBtn" onclick="sendData()" disabled>認証中...</button>
+    <button id="submitBtn" onclick="sendData()" disabled>決定する</button>
   </div>
 
   <div id="pageList" class="page">
@@ -138,6 +138,7 @@
   const GAS_URL = "https://script.google.com/macros/s/*********************/exec";
   
   let currentType = "出金";
+  let isAuthReady = false;
   let imageBlobs = [];
   let allData = [];
   let myChart = null;
@@ -161,8 +162,8 @@
       // 自動ユーザー登録を実行
       await callGas("register", { userId: p.userId, displayName: p.displayName });
       
-      document.getElementById('submitBtn').disabled = false;
-      document.getElementById('submitBtn').innerText = "登録する";
+      isAuthReady = true;
+      updateSubmitButtonState();
       
       updateCategoryOptions();
       initFilters();
@@ -170,6 +171,8 @@
       console.error("LIFF初期化エラー:", err);
     });
     document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    bindInputListeners();
+    updateSubmitButtonState();
   };
 
   /**
@@ -231,6 +234,28 @@
     const sel = document.getElementById('category');
     sel.innerHTML = "";
     categories[currentType].forEach(c => sel.add(new Option(c, c)));
+    updateSubmitButtonState();
+  }
+
+  function bindInputListeners() {
+    ['amount', 'shop', 'category', 'date'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', updateSubmitButtonState);
+      el.addEventListener('change', updateSubmitButtonState);
+    });
+  }
+
+  function updateSubmitButtonState() {
+    const btn = document.getElementById('submitBtn');
+    const amount = document.getElementById('amount')?.value?.trim() || "";
+    const shop = document.getElementById('shop')?.value?.trim() || "";
+    const category = document.getElementById('category')?.value || "";
+    const date = document.getElementById('date')?.value || "";
+    const canSubmit = isAuthReady && amount !== "" && shop !== "" && category !== "" && date !== "";
+
+    btn.disabled = !canSubmit;
+    btn.innerText = "決定する";
   }
 
   /**
@@ -429,7 +454,7 @@
       else { throw new Error("APIエラー"); }
     } catch (e) {
       alert("送信に失敗しました");
-      btn.disabled = false; btn.innerText = "登録する";
+      updateSubmitButtonState();
     }
   }
 </script>
