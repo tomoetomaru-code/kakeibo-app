@@ -200,7 +200,6 @@
   async function callGas(action, data) {
     const res = await fetch(GAS_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, data })
     });
     if (!res.ok) {
