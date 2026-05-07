@@ -183,6 +183,8 @@
       // LIFFが使えない環境でも入力送信できるようにする
       currentProfile = { userId: "web-preview-user", displayName: "ブラウザ利用者" };
       isAuthReady = true;
+      callGas("register", { userId: currentProfile.userId, displayName: currentProfile.displayName })
+        .catch(registerErr => console.error("フォールバック登録エラー:", registerErr));
       updateCategoryOptions();
       initFilters().catch(filterErr => console.error("フィルタ初期化エラー:", filterErr));
       updateSubmitButtonState();
@@ -196,7 +198,14 @@
    * 2. GAS通信関数
    */
   async function callGas(action, data) {
-    const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action, data }) });
+    const res = await fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, data })
+    });
+    if (!res.ok) {
+      throw new Error(`通信エラー: ${res.status}`);
+    }
     return await res.json();
   }
 
@@ -467,16 +476,18 @@
       if (!p) {
         p = { userId: "web-preview-user", displayName: "ブラウザ利用者" };
       }
+      await callGas("register", { userId: p.userId, displayName: p.displayName });
 
       const res = await callGas("upload", {
         lineId: p.userId, userName: p.displayName, type: currentType, amount: Number(amt),
         category: document.getElementById('category').value, shop: document.getElementById('shop').value || "未設定",
         date: document.getElementById('date').value, imageBlobs: imageBlobs
       });
-      if (res.status === "success") { alert("完了！"); location.reload(); }
-      else { throw new Error("APIエラー"); }
+      const isSuccess = !!(res && (res.status === "success" || res.result === "success" || res.ok === true));
+      if (isSuccess) { alert("完了！"); location.reload(); }
+      else { throw new Error(res?.message || res?.error || "APIエラー"); }
     } catch (e) {
-      alert("送信に失敗しました");
+      alert(`送信に失敗しました: ${e.message || e}`);
       updateSubmitButtonState();
     }
   }
