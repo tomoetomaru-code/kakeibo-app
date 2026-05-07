@@ -249,10 +249,9 @@
   function updateSubmitButtonState() {
     const btn = document.getElementById('submitBtn');
     const amount = document.getElementById('amount')?.value?.trim() || "";
-    const shop = document.getElementById('shop')?.value?.trim() || "";
     const category = document.getElementById('category')?.value || "";
     const date = document.getElementById('date')?.value || "";
-    const canSubmit = isAuthReady && amount !== "" && shop !== "" && category !== "" && date !== "";
+    const canSubmit = isAuthReady && amount !== "" && category !== "" && date !== "";
 
     btn.disabled = !canSubmit;
     btn.innerText = "決定する";
